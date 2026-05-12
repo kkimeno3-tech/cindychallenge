@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>운동 챌린지 순위</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold:   #C9972B;
+    --silver: #8A9099;
+    --bronze: #B56832;
+    --bg:     #F6F5F2;
+    --card:   #FFFFFF;
+    --text:   #1A1A18;
+    --muted:  #6B6A65;
+    --border: rgba(0,0,0,0.08);
+    --accent: #1A4FBF;
+    --accent-light: #E8EEFB;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── 헤더 ── */
+  header {
+    background: var(--text);
+    color: #fff;
+    padding: 2rem 1.5rem 1.5rem;
+    text-align: center;
+  }
+  header h1 {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  header p {
+    font-size: 0.85rem;
+    opacity: 0.55;
+    margin-top: 4px;
+  }
+  #lastUpdated {
+    display: inline-block;
+    margin-top: 10px;
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.1);
+    padding: 3px 12px;
+    border-radius: 20px;
+  }
+
+  /* ── 설정 배너 ── */
+  #setupBanner {
+    background: #FFF3CD;
+    border-bottom: 1px solid #FDEAAA;
+    padding: 14px 1.5rem;
+    font-size: 0.82rem;
+    color: #7A5C00;
+    text-align: center;
+    line-height: 1.6;
+  }
+  #setupBanner code {
+    background: rgba(0,0,0,0.08);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.8rem;
+  }
+  #urlForm {
+    display: flex;
+    gap: 6px;
+    max-width: 600px;
+    margin: 8px auto 0;
+  }
+  #urlInput {
+    flex: 1;
+    padding: 7px 10px;
+    border: 1px solid #FDEAAA;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    background: #fff;
+    font-family: monospace;
+  }
+  #urlForm button {
+    padding: 7px 14px;
+    background: #7A5C00;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ── 필터 바 ── */
+  .controls {
+    display: flex;
+    gap: 8px;
+    padding: 1rem 1.5rem;
+    max-width: 860px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .controls label { font-size: 0.8rem; color: var(--muted); }
+  .controls select, .controls button {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.82rem;
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .controls select:focus, #urlInput:focus { outline: 2px solid var(--accent); }
+  #refreshBtn {
+    margin-left: auto;
+    background: var(--accent);
+    color: #fff;
+    border-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  #refreshBtn:hover { opacity: 0.85; }
+  #refreshBtn.spinning svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── 요약 카드 ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    padding: 0 1.5rem 1.25rem;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+  }
+  .stat-card .label { font-size: 0.72rem; color: var(--muted); margin-bottom: 4px; }
+  .stat-card .value { font-size: 1.5rem; font-weight: 700; }
+
+  /* ── 포디엄 ── */
+  .podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 0 1.5rem 1.5rem;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+  .podium-item {
+    flex: 1;
+    max-width: 200px;
+    text-align: center;
+  }
+  .podium-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px 12px 0 0;
+    padding: 1rem 0.75rem 0.75rem;
+  }
+  .podium-item.p1 .podium-card { border-top: 3px solid var(--gold); }
+  .podium-item.p2 .podium-card { border-top: 3px solid var(--silver); }
+  .podium-item.p3 .podium-card { border-top: 3px solid var(--bronze); }
+  .podium-medal { font-size: 1.8rem; line-height: 1; }
+  .podium-name { font-size: 0.82rem; font-weight: 700; margin-top: 6px; word-break: keep-all; }
+  .podium-class { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+  .podium-score { font-size: 1.25rem; font-weight: 700; margin-top: 6px; }
+  .podium-item.p1 .podium-score { color: var(--gold); }
+  .podium-item.p2 .podium-score { color: var(--silver); }
+  .podium-item.p3 .podium-score { color: var(--bronze); }
+  .podium-step {
+    background: var(--border);
+    border-radius: 0 0 4px 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--muted);
+    padding: 4px 0;
+  }
+  .podium-item.p1 .podium-step { height: 52px; display: flex; align-items: center; justify-content: center; }
+  .podium-item.p2 .podium-step { height: 36px; display: flex; align-items: center; justify-content: center; }
+  .podium-item.p3 .podium-step { height: 22px; display: flex; align-items: center; justify-content: center; }
+
+  /* ── 테이블 ── */
+  .table-wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 1.5rem 2.5rem;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card);
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    font-size: 0.88rem;
+  }
+  thead tr { background: #F0EFEb; }
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  td { padding: 11px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: #FAFAF8; }
+
+  .rank-num { font-weight: 700; font-size: 1rem; color: var(--muted); }
+  .rank-1 { color: var(--gold); }
+  .rank-2 { color: var(--silver); }
+  .rank-3 { color: var(--bronze); }
+
+  .name-col { font-weight: 500; }
+  .cls-badge {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .score-col { font-weight: 700; }
+  .bar-wrap { display: flex; align-items: center; gap: 6px; }
+  .bar-bg { background: #EDEDEA; border-radius: 4px; height: 6px; flex: 1; min-width: 50px; overflow: hidden; }
+  .bar-fill { height: 6px; border-radius: 4px; background: var(--accent); transition: width 0.5s ease; }
+
+  /* ── 상태 메시지 ── */
+  .state-msg {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  .state-msg .icon { font-size: 2.5rem; display: block; margin-bottom: 0.5rem; }
+  .error-msg { color: #B00020; }
+
+  /* ── 반응형 ── */
+  @media (max-width: 600px) {
+    .podium { gap: 4px; }
+    .podium-name { font-size: 0.72rem; }
+    td, th { padding: 9px 8px; }
+    .bar-wrap { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🏋️ 운동 챌린지 순위</h1>
+  <p>라운드 × 10점 + 추가 횟수</p>
+  <span id="lastUpdated">연결 대기 중...</span>
+</header>
+
+<!-- Apps Script URL 입력 배너 -->
+<div id="setupBanner">
+  <strong>📋 처음 설정:</strong> Apps Script 배포 후 받은 URL을 아래에 붙여넣으세요.
+  한 번 입력하면 브라우저에 저장됩니다.
+  <div id="urlForm">
+    <input id="urlInput" type="text" placeholder="https://script.google.com/macros/s/..." />
+    <button onclick="saveUrl()">연결하기</button>
+  </div>
+</div>
+
+<div class="controls" id="controlBar" style="display:none">
+  <label>반 필터</label>
+  <select id="clsFilter" onchange="render()"><option value="">전체</option></select>
+  <label style="margin-left:4px">정렬</label>
+  <select id="sortBy" onchange="render()">
+    <option value="score">총점순</option>
+    <option value="rounds">라운드순</option>
+    <option value="extra">추가 횟수순</option>
+  </select>
+  <button id="refreshBtn" onclick="fetchData()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    새로고침
+  </button>
+</div>
+
+<div class="stats" id="statsRow" style="display:none">
+  <div class="stat-card"><div class="label">참가 팀</div><div class="value" id="s-teams">—</div></div>
+  <div class="stat-card"><div class="label">평균 점수</div><div class="value" id="s-avg">—</div></div>
+  <div class="stat-card"><div class="label">최고 점수</div><div class="value" id="s-max">—</div></div>
+  <div class="stat-card"><div class="label">참여 반</div><div class="value" id="s-cls">—</div></div>
+</div>
+
+<div class="podium" id="podiumRow" style="display:none"></div>
+
+<div class="table-wrap">
+  <div id="stateMsg" class="state-msg">
+    <span class="icon">🔗</span>
+    위에 Apps Script URL을 입력해 연결하세요.
+  </div>
+  <table id="rankTable" style="display:none">
+    <thead>
+      <tr>
+        <th style="width:50px">순위</th>
+        <th>이름 (팀)</th>
+        <th>반</th>
+        <th>라운드</th>
+        <th>추가 횟수</th>
+        <th>총 점수</th>
+        <th style="min-width:120px">점수 비율</th>
+      </tr>
+    </thead>
+    <tbody id="rankBody"></tbody>
+  </table>
+</div>
+
+<script>
+const STORAGE_KEY = 'challenge_api_url';
+let allData = [];
+
+// ── URL 저장/복원 ──
+function saveUrl() {
+  const url = document.getElementById('urlInput').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    alert('올바른 Apps Script URL을 입력해주세요.');
+    return;
+  }
+  localStorage.setItem(STORAGE_KEY, url);
+  document.getElementById('setupBanner').style.display = 'none';
+  fetchData();
+}
+
+function loadSavedUrl() {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    document.getElementById('urlInput').value = saved;
+    document.getElementById('setupBanner').style.display = 'none';
+    fetchData();
+  }
+}
+
+// ── 데이터 불러오기 ──
+async function fetchData() {
+  const url = localStorage.getItem(STORAGE_KEY);
+  if (!url) return;
+
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  setMsg('⏳', '데이터를 불러오는 중...');
+
+  try {
+    const res = await fetch(url);
+    const json = await res.json();
+    if (!json.success) throw new Error('응답 오류');
+    allData = json.data;
+    buildFilters();
+    render();
+    document.getElementById('lastUpdated').textContent =
+      '마지막 업데이트: ' + new Date().toLocaleTimeString('ko-KR');
+  } catch (e) {
+    setMsg('❌', '데이터를 불러오지 못했습니다.<br>Apps Script URL과 배포 설정을 확인해주세요.', true);
+    console.error(e);
+  } finally {
+    btn.classList.remove('spinning');
+  }
+}
+
+function setMsg(icon, text, isErr) {
+  const el = document.getElementById('stateMsg');
+  el.innerHTML = `<span class="icon">${icon}</span>${text}`;
+  el.className = 'state-msg' + (isErr ? ' error-msg' : '');
+  el.style.display = 'block';
+  document.getElementById('rankTable').style.display = 'none';
+}
+
+// ── 필터 구성 ──
+function buildFilters() {
+  const sel = document.getElementById('clsFilter');
+  const classes = [...new Set(allData.map(r => r.cls))].sort();
+  sel.innerHTML = '<option value="">전체</option>' +
+    classes.map(c => `<option>${c}</option>`).join('');
+  document.getElementById('controlBar').style.display = 'flex';
+  document.getElementById('statsRow').style.display = 'grid';
+}
+
+// ── 렌더링 ──
+function render() {
+  const cls = document.getElementById('clsFilter').value;
+  const sortBy = document.getElementById('sortBy').value;
+  let data = cls ? allData.filter(r => r.cls === cls) : [...allData];
+
+  data.sort((a, b) => {
+    if (sortBy === 'rounds') return b.rounds - a.rounds || b.extra - a.extra;
+    if (sortBy === 'extra')  return b.extra - a.extra   || b.rounds - a.rounds;
+    return b.score - a.score;
+  });
+
+  if (!data.length) { setMsg('📭', '해당 반의 데이터가 없습니다.'); return; }
+
+  const maxScore = data[0].score || 1;
+
+  // 요약 통계
+  document.getElementById('s-teams').textContent = allData.length + '팀';
+  document.getElementById('s-avg').textContent =
+    Math.round(allData.reduce((s, r) => s + r.score, 0) / allData.length) + '점';
+  document.getElementById('s-max').textContent = allData[0]?.score + '점';
+  document.getElementById('s-cls').textContent =
+    new Set(allData.map(r => r.cls)).size + '개';
+
+  // 포디엄
+  renderPodium(data.slice(0, 3));
+
+  // 테이블
+  const MEDALS = ['🥇','🥈','🥉'];
+  document.getElementById('rankBody').innerHTML = data.map((r, i) => {
+    const pct = Math.round((r.score / maxScore) * 100);
+    const rankClass = i < 3 ? `rank-${i+1}` : '';
+    const rankLabel = i < 3 ? MEDALS[i] : `#${i+1}`;
+    return `<tr>
+      <td><span class="rank-num ${rankClass}">${rankLabel}</span></td>
+      <td class="name-col">${r.names}</td>
+      <td><span class="cls-badge">${r.cls}</span></td>
+      <td>${r.rounds}회</td>
+      <td>${r.extra}회</td>
+      <td class="score-col">${r.score}점</td>
+      <td><div class="bar-wrap">
+        <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
+        <span style="font-size:0.75rem;color:#888;min-width:30px">${pct}%</span>
+      </div></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('stateMsg').style.display = 'none';
+  document.getElementById('rankTable').style.display = 'table';
+}
+
+function renderPodium(top) {
+  const MEDALS = ['🥇','🥈','🥉'];
+  const ORDER  = [1, 0, 2]; // 2위, 1위, 3위 순으로 배치
+  const CLASSES = ['p2','p1','p3'];
+  const container = document.getElementById('podiumRow');
+  if (top.length < 1) { container.style.display = 'none'; return; }
+  container.innerHTML = ORDER.map(idx => {
+    if (!top[idx]) return '';
+    const r = top[idx];
+    return `<div class="podium-item ${CLASSES[ORDER.indexOf(idx)]}">
+      <div class="podium-card">
+        <div class="podium-medal">${MEDALS[idx]}</div>
+        <div class="podium-name">${r.names}</div>
+        <div class="podium-class">${r.cls}</div>
+        <div class="podium-score">${r.score}점</div>
+      </div>
+      <div class="podium-step">${idx+1}위</div>
+    </div>`;
+  }).join('');
+  container.style.display = 'flex';
+}
+
+// ── 초기화 ──
+loadSavedUrl();
+</script>
+</body>
+</html>
