@@ -269,15 +269,7 @@
   <span id="lastUpdated">연결 대기 중...</span>
 </header>
 
-<!-- Apps Script URL 입력 배너 -->
-<div id="setupBanner">
-  <strong>📋 처음 설정:</strong> Apps Script 배포 후 받은 URL을 아래에 붙여넣으세요.
-  한 번 입력하면 브라우저에 저장됩니다.
-  <div id="urlForm">
-    <input id="urlInput" type="text" placeholder="https://script.google.com/macros/s/..." />
-    <button onclick="saveUrl()">연결하기</button>
-  </div>
-</div>
+
 
 <div class="controls" id="controlBar" style="display:none">
   <label>반 필터</label>
@@ -325,34 +317,16 @@
 </div>
 
 <script>
-const STORAGE_KEY = 'challenge_api_url';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwZW2lT_rKzkVcH_2414Pvd79WlCylv-TWY7Jx6m8VC42s4SMbNPAw39vwqkD_mky23Cg/exec';
 let allData = [];
 
-// ── URL 저장/복원 ──
-function saveUrl() {
-  const url = document.getElementById('urlInput').value.trim();
-  if (!url.startsWith('https://script.google.com')) {
-    alert('올바른 Apps Script URL을 입력해주세요.');
-    return;
-  }
-  localStorage.setItem(STORAGE_KEY, url);
-  document.getElementById('setupBanner').style.display = 'none';
-  fetchData();
-}
-
 function loadSavedUrl() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    document.getElementById('urlInput').value = saved;
-    document.getElementById('setupBanner').style.display = 'none';
-    fetchData();
-  }
+  fetchData();
 }
 
 // ── 데이터 불러오기 ──
 async function fetchData() {
-  const url = localStorage.getItem(STORAGE_KEY);
-  if (!url) return;
+  const url = API_URL;
 
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
