@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrossFit WOD 종합 순위</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #080c10;
+  --surface:  #0f1419;
+  --card:     #161d25;
+  --border:   #1e2a35;
+  --c1: #ff4d4d;   /* AMRAP */
+  --c2: #00d4aa;   /* ForTime */
+  --c3: #f5c400;   /* MAX */
+  --c4: #60a5fa;   /* 개인종합 */
+  --c5: #a855f7;   /* 팀 */
+  --text:   #e8eef4;
+  --muted:  #5a6a7a;
+  --gold:   #FFD700;
+  --silver: #b8c4cc;
+  --bronze: #cd7f32;
+}
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* HEADER */
+.hdr {
+  padding: 22px 20px 16px;
+  text-align: center;
+  background: linear-gradient(180deg,#0c1520 0%,var(--bg) 100%);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.hdr::before {
+  content:'';
+  position:absolute; inset:0;
+  background:
+    radial-gradient(ellipse 55% 70% at 10% 50%, rgba(255,77,77,.07) 0%,transparent 70%),
+    radial-gradient(ellipse 55% 70% at 90% 50%, rgba(168,85,247,.07) 0%,transparent 70%);
+  pointer-events:none;
+}
+.hdr-title {
+  font-family:'Black Han Sans',sans-serif;
+  font-size: clamp(1.5rem,5vw,2.2rem);
+  background: linear-gradient(90deg,#ff4d4d,#f5c400,#00d4aa,#a855f7);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.hdr-sub { margin-top:5px; color:var(--muted); font-size:.73rem; letter-spacing:2px; text-transform:uppercase; }
+
+/* STATUS BAR */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.wod-status { display:flex; gap:6px; flex-wrap:wrap; }
+.wod-pill {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .5px;
+  border: 1px solid;
+  opacity: .4;
+  transition: opacity .3s;
+}
+.wod-pill.done { opacity: 1; }
+.pill1 { color:var(--c1); border-color:var(--c1); background:rgba(255,77,77,.1); }
+.pill2 { color:var(--c2); border-color:var(--c2); background:rgba(0,212,170,.1); }
+.pill3 { color:var(--c3); border-color:var(--c3); background:rgba(245,196,0,.1); }
+
+.right-bar { display:flex; align-items:center; gap:10px; }
+.refresh-btn {
+  display:flex; align-items:center; gap:5px;
+  padding:6px 13px; background:var(--card); border:1px solid var(--border);
+  border-radius:16px; color:var(--text); font-size:.76rem;
+  font-family:'Noto Sans KR',sans-serif; cursor:pointer; transition:border-color .2s;
+}
+.refresh-btn:hover { border-color:var(--muted); }
+.spin { display:inline-block; }
+.refresh-btn.loading .spin { animation:spin .6s linear infinite; }
+@keyframes spin { to{ transform:rotate(360deg); } }
+.ts { color:var(--muted); font-size:.72rem; }
+
+/* TABS */
+.tabs {
+  display: flex;
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display:none; }
+.tab-btn {
+  flex: 0 0 auto;
+  padding: 11px 16px;
+  border: none; background: transparent;
+  color: var(--muted);
+  font-family:'Noto Sans KR',sans-serif; font-size:.78rem; font-weight:600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: all .2s;
+  white-space: nowrap; text-align:center; line-height:1.3;
+}
+.tab-btn small { display:block; font-size:.61rem; font-weight:400; color:var(--muted); margin-top:1px; }
+.t1.active { color:var(--c1); border-bottom-color:var(--c1); }
+.t2.active { color:var(--c2); border-bottom-color:var(--c2); }
+.t3.active { color:var(--c3); border-bottom-color:var(--c3); }
+.t4.active { color:var(--c4); border-bottom-color:var(--c4); }
+.t5.active { color:var(--c5); border-bottom-color:var(--c5); }
+
+/* PANELS */
+.panel { display:none; padding:16px; animation:fadeIn .2s ease; }
+.panel.active { display:block; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+
+.wod-tag {
+  display:inline-block; padding:3px 12px; border-radius:11px;
+  font-size:.7rem; font-weight:700; letter-spacing:1px; text-transform:uppercase;
+  margin-bottom:14px; border:1px solid;
+}
+.wt1 { color:var(--c1); border-color:var(--c1); background:rgba(255,77,77,.1); }
+.wt2 { color:var(--c2); border-color:var(--c2); background:rgba(0,212,170,.1); }
+.wt3 { color:var(--c3); border-color:var(--c3); background:rgba(245,196,0,.1); }
+.wt4 { color:var(--c4); border-color:var(--c4); background:rgba(96,165,250,.1); }
+.wt5 { color:var(--c5); border-color:var(--c5); background:rgba(168,85,247,.1); }
+
+/* PODIUM */
+.podium { display:flex; align-items:flex-end; justify-content:center; gap:6px; margin-bottom:20px; height:160px; }
+.p-slot { flex:1; max-width:115px; display:flex; flex-direction:column; align-items:center; }
+.p-info { text-align:center; margin-bottom:7px; }
+.p-name { font-size:.8rem; font-weight:700; line-height:1.2; word-break:keep-all; }
+.p-sub  { font-size:.68rem; color:var(--muted); margin-top:2px; }
+.p-score{ font-size:.7rem; color:var(--muted); margin-top:2px; }
+.p-block { width:100%; border-radius:6px 6px 0 0; display:flex; align-items:flex-start; justify-content:center; padding-top:8px; font-size:1.3rem; }
+.pb1 { height:90px;  background:linear-gradient(180deg,rgba(255,215,0,.9),rgba(200,160,0,.6)); }
+.pb2 { height:60px;  background:linear-gradient(180deg,rgba(184,196,204,.9),rgba(130,145,155,.6)); }
+.pb3 { height:42px;  background:linear-gradient(180deg,rgba(205,127,50,.9),rgba(155,90,25,.6)); }
+
+/* SECTION LABEL */
+.slbl { font-size:.67rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:9px; }
+
+/* TABLE */
+table.rt { width:100%; border-collapse:collapse; font-size:.82rem; }
+.rt th { padding:8px 10px; text-align:left; font-size:.67rem; font-weight:700; color:var(--muted); background:var(--surface); letter-spacing:.5px; border-bottom:1px solid var(--border); }
+.rt td { padding:11px 10px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.rt tr:last-child td { border-bottom:none; }
+.rt tr:hover td { background:rgba(255,255,255,.02); }
+
+.rbadge { display:inline-flex; align-items:center; justify-content:center; width:25px; height:25px; border-radius:50%; font-size:.75rem; font-weight:700; }
+.rg{background:var(--gold);color:#000;}
+.rs{background:var(--silver);color:#000;}
+.rb{background:var(--bronze);color:#fff;}
+.rn{background:var(--card);color:var(--muted);font-size:.7rem;}
+
+.cn{font-weight:600;}
+.ct{color:var(--muted);font-size:.76rem;}
+
+.sc{font-weight:700;}
+.s1{color:var(--c1);}
+.s2{color:var(--c2);}
+.s3{color:var(--c3);}
+.s4{color:var(--c4);}
+.s5{color:var(--c5);}
+
+.mini-r{text-align:center;font-size:.76rem;color:var(--muted);}
+.mini-r.hi{color:var(--text);font-weight:600;}
+.total-s{text-align:center;font-size:.95rem;font-weight:700;}
+
+/* team members */
+.chips{display:flex;flex-wrap:wrap;gap:3px;}
+.chip{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:2px 7px;font-size:.69rem;color:var(--muted);white-space:nowrap;}
+
+/* empty */
+.ec{text-align:center;color:var(--muted);padding:40px 20px!important;}
+.ei{font-size:2rem;display:block;margin-bottom:8px;}
+
+/* no-data notice */
+.no-data-banner {
+  text-align:center; padding:14px; margin-bottom:14px;
+  background: var(--card); border:1px solid var(--border);
+  border-radius:8px; color:var(--muted); font-size:.8rem;
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-title">CrossFit WOD 종합 순위</div>
+  <div class="hdr-sub">AMRAP · For Time · MAX OVER DUMB</div>
+</div>
+
+<!-- STATUS + REFRESH -->
+<div class="status-bar">
+  <div class="wod-status">
+    <span class="wod-pill pill1" id="pill1">WOD1 AMRAP</span>
+    <span class="wod-pill pill2" id="pill2">WOD2 For Time</span>
+    <span class="wod-pill pill3" id="pill3">WOD3 MAX</span>
+  </div>
+  <div class="right-bar">
+    <span class="ts" id="ts">-</span>
+    <button class="refresh-btn" id="refreshBtn" onclick="loadData()">
+      <span class="spin">↻</span> 새로고침
+    </button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab-btn t1 active" onclick="switchTab('amrap',this)">WOD 1<small>AMRAP 5분</small></button>
+  <button class="tab-btn t2"        onclick="switchTab('fortime',this)">WOD 2<small>For Time 5분</small></button>
+  <button class="tab-btn t3"        onclick="switchTab('max',this)">WOD 3<small>MAX OVER DUMB</small></button>
+  <button class="tab-btn t4"        onclick="switchTab('personal',this)">개인 종합<small>순위</small></button>
+  <button class="tab-btn t5"        onclick="switchTab('team',this)">🏆 팀 순위<small>종합</small></button>
+</div>
+
+<!-- WOD1: AMRAP -->
+<div class="panel active" id="panel-amrap">
+  <span class="wod-tag wt1">WOD 1 · AMRAP 5분</span>
+  <div class="slbl">TOP 3</div>
+  <div class="podium" id="pod-amrap"></div>
+  <div class="slbl">전체 순위</div>
+  <table class="rt">
+    <thead><tr><th>순위</th><th>이름</th><th>팀</th><th>라운드</th><th>추가 횟수</th></tr></thead>
+    <tbody id="tb-amrap"></tbody>
+  </table>
+</div>
+
+<!-- WOD2: For Time -->
+<div class="panel" id="panel-fortime">
+  <span class="wod-tag wt2">WOD 2 · For Time 5분</span>
+  <div class="slbl">TOP 3</div>
+  <div class="podium" id="pod-fortime"></div>
+  <div class="slbl">전체 순위</div>
+  <table class="rt">
+    <thead><tr><th>순위</th><th>이름</th><th>팀</th><th>기록</th></tr></thead>
+    <tbody id="tb-fortime"></tbody>
+  </table>
+</div>
+
+<!-- WOD3: MAX -->
+<div class="panel" id="panel-max">
+  <span class="wod-tag wt3">WOD 3 · MAX OVER DUMB</span>
+  <div class="slbl">TOP 3</div>
+  <div class="podium" id="pod-max"></div>
+  <div class="slbl">전체 순위</div>
+  <table class="rt">
+    <thead><tr><th>순위</th><th>이름</th><th>팀</th><th>기록</th></tr></thead>
+    <tbody id="tb-max"></tbody>
+  </table>
+</div>
+
+<!-- 개인 종합 -->
+<div class="panel" id="panel-personal">
+  <span class="wod-tag wt4">개인 종합 순위</span>
+  <div class="slbl">TOP 3</div>
+  <div class="podium" id="pod-personal"></div>
+  <div class="slbl">전체 순위 — 등수 합산, 낮을수록 우승</div>
+  <table class="rt">
+    <thead>
+      <tr>
+        <th>순위</th><th>이름</th><th>팀</th>
+        <th style="text-align:center">WOD1</th>
+        <th style="text-align:center">WOD2</th>
+        <th style="text-align:center">WOD3</th>
+        <th style="text-align:center">합계</th>
+      </tr>
+    </thead>
+    <tbody id="tb-personal"></tbody>
+  </table>
+</div>
+
+<!-- 팀 종합 -->
+<div class="panel" id="panel-team">
+  <span class="wod-tag wt5">🏆 팀 종합 순위</span>
+  <div class="slbl">TOP 3</div>
+  <div class="podium" id="pod-team"></div>
+  <div class="slbl">팀원 개인 합산점수의 평균 — 낮을수록 우승 (3·4명 팀 공평 적용)</div>
+  <table class="rt">
+    <thead><tr><th>순위</th><th>팀 이름</th><th>팀원</th><th style="text-align:center">합계</th></tr></thead>
+    <tbody id="tb-team"></tbody>
+  </table>
+</div>
+
+<script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby8J1nlzAta-2UH207sOLuF1feR558du8Faq4PgLgN2Usw0dQ8_elWdQO9Psi3lv9-q/exec';
+
+let raw = null;
+
+// ── LOAD ─────────────────────────────────────────────
+async function loadData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('loading');
+  document.getElementById('ts').textContent = '로딩 중...';
+
+  try {
+    const res  = await fetch(SCRIPT_URL + '?t=' + Date.now());
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+    raw = data;
+    updatePills();
+    renderAll();
+    const n = new Date();
+    document.getElementById('ts').textContent =
+      [n.getHours(),n.getMinutes(),n.getSeconds()].map(x=>String(x).padStart(2,'0')).join(':');
+  } catch(e) {
+    document.getElementById('ts').textContent = '로드 실패';
+    console.error(e);
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+// WOD 완료 상태 표시
+function updatePills() {
+  if (!raw) return;
+  document.getElementById('pill1').classList.toggle('done', (raw.amrap||[]).length > 0);
+  document.getElementById('pill2').classList.toggle('done', (raw.forTime||[]).length > 0);
+  document.getElementById('pill3').classList.toggle('done', (raw.max||[]).length > 0);
+}
+
+function renderAll() {
+  if (!raw) return;
+  renderAMRAP(raw.amrap   || []);
+  renderForTime(raw.forTime || []);
+  renderMAX(raw.max       || []);
+  renderPersonal(raw.combined   || []);
+  renderTeam(raw.teamRanking    || []);
+}
+
+// ── HELPERS ──────────────────────────────────────────
+function badge(rank) {
+  if (rank===1) return '<span class="rbadge rg">1</span>';
+  if (rank===2) return '<span class="rbadge rs">2</span>';
+  if (rank===3) return '<span class="rbadge rb">3</span>';
+  return `<span class="rbadge rn">${rank}</span>`;
+}
+function empty(cols, msg) {
+  return `<tr><td colspan="${cols}" class="ec">
+    <span class="ei">📋</span>${msg||'아직 응답 데이터가 없습니다'}
+  </td></tr>`;
+}
+function fmtTime(m,s){ return m+'분 '+String(s).padStart(2,'0')+'초'; }
+
+function renderPodium(id, data, nameFn, subFn, scoreFn) {
+  const el = document.getElementById(id);
+  if (!data || !data.length) {
+    el.innerHTML = '<div style="color:var(--muted);text-align:center;width:100%;padding:30px 0;font-size:.83rem">데이터 없음</div>';
+    return;
+  }
+  const slots = [
+    {item:data[1], medal:'🥈', bc:'pb2'},
+    {item:data[0], medal:'🥇', bc:'pb1'},
+    {item:data[2], medal:'🥉', bc:'pb3'}
+  ];
+  el.innerHTML = slots.map(s => {
+    if (!s.item) return '<div class="p-slot"></div>';
+    return `<div class="p-slot">
+      <div class="p-info">
+        <div class="p-name">${nameFn(s.item)}</div>
+        ${subFn ? `<div class="p-sub">${subFn(s.item)}</div>` : ''}
+        <div class="p-score">${scoreFn(s.item)}</div>
+      </div>
+      <div class="p-block ${s.bc}">${s.medal}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── AMRAP ─────────────────────────────────────────────
+function renderAMRAP(data) {
+  renderPodium('pod-amrap', data, r=>r.name, r=>r.team, r=>`${r.rounds}R +${r.extra}`);
+  const tb = document.getElementById('tb-amrap');
+  if (!data.length) { tb.innerHTML = empty(5, 'WOD 1 응답 대기 중...'); return; }
+  tb.innerHTML = data.map(r=>`<tr>
+    <td>${badge(r.rank)}</td>
+    <td class="cn">${r.name}</td>
+    <td class="ct">${r.team}</td>
+    <td class="sc s1">${r.rounds}R</td>
+    <td class="sc s1">+${r.extra}</td>
+  </tr>`).join('');
+}
+
+// ── FOR TIME ──────────────────────────────────────────
+function renderForTime(data) {
+  renderPodium('pod-fortime', data, r=>r.name, r=>r.team, r=>fmtTime(r.minutes,r.seconds));
+  const tb = document.getElementById('tb-fortime');
+  if (!data.length) { tb.innerHTML = empty(4, 'WOD 2 응답 대기 중...'); return; }
+  tb.innerHTML = data.map(r=>`<tr>
+    <td>${badge(r.rank)}</td>
+    <td class="cn">${r.name}</td>
+    <td class="ct">${r.team}</td>
+    <td class="sc s2">${fmtTime(r.minutes,r.seconds)}</td>
+  </tr>`).join('');
+}
+
+// ── MAX OVER DUMB ─────────────────────────────────────
+function renderMAX(data) {
+  renderPodium('pod-max', data, r=>r.name, r=>r.team, r=>`${r.score}점`);
+  const tb = document.getElementById('tb-max');
+  if (!data.length) { tb.innerHTML = empty(4, 'WOD 3 응답 대기 중...'); return; }
+  tb.innerHTML = data.map(r=>`<tr>
+    <td>${badge(r.rank)}</td>
+    <td class="cn">${r.name}</td>
+    <td class="ct">${r.team}</td>
+    <td class="sc s3">${r.score}</td>
+  </tr>`).join('');
+}
+
+// ── 개인 종합 ─────────────────────────────────────────
+function renderPersonal(data) {
+  renderPodium('pod-personal', data, r=>r.name, r=>r.team, r=>`합계 ${r.total}점`);
+  const tb = document.getElementById('tb-personal');
+  if (!data.length) { tb.innerHTML = empty(7, '데이터 없음'); return; }
+  tb.innerHTML = data.map(r=>`<tr>
+    <td>${badge(r.rank)}</td>
+    <td class="cn">${r.name}</td>
+    <td class="ct">${r.team}</td>
+    <td class="mini-r ${r.amrapRank<=3?'hi':''}">${r.amrapRank}위</td>
+    <td class="mini-r ${r.forTimeRank<=3?'hi':''}">${r.forTimeRank}위</td>
+    <td class="mini-r ${r.maxRank<=3?'hi':''}">${r.maxRank}위</td>
+    <td class="total-s s4">${r.total}</td>
+  </tr>`).join('');
+}
+
+// ── 팀 종합 ───────────────────────────────────────────
+function renderTeam(data) {
+  renderPodium('pod-team', data, r=>r.name, r=>`${r.members.length}명`, r=>`평균 ${r.avgScore}점`);
+  const tb = document.getElementById('tb-team');
+  if (!data.length) { tb.innerHTML = empty(4, '데이터 없음'); return; }
+  tb.innerHTML = data.map(r=>`<tr>
+    <td>${badge(r.rank)}</td>
+    <td class="cn">${r.name}<span style="color:var(--muted);font-size:.72rem;font-weight:400;margin-left:4px">(${r.members.length}명)</span></td>
+    <td>
+      <div class="chips">
+        ${(r.members||[]).map(m=>`<span class="chip">${m}</span>`).join('')}
+      </div>
+    </td>
+    <td class="total-s s5">${r.avgScore}</td>
+  </tr>`).join('');
+}
+
+// ── TABS ──────────────────────────────────────────────
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-'+tab).classList.add('active');
+}
+
+// 초기 로드 & 30초 자동 갱신
+loadData();
+setInterval(loadData, 30000);
+</script>
+</body>
+</html>
