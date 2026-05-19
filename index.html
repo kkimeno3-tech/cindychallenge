@@ -265,7 +265,7 @@
 
 <header>
   <h1>🏋️ 운동 챌린지 순위</h1>
-  <p>라운드 × 10점 + 추가 횟수</p>
+  <p>라운드 우선, 동 라운드면 추가 횟수로 순위 결정</p>
   <span id="lastUpdated">연결 대기 중...</span>
 </header>
 
@@ -373,21 +373,19 @@ function render() {
   const sortBy = document.getElementById('sortBy').value;
   let data = cls ? allData.filter(r => r.cls === cls) : [...allData];
 
-  data.sort((a, b) => {
-    if (sortBy === 'rounds') return b.rounds - a.rounds || b.extra - a.extra;
-    if (sortBy === 'extra')  return b.extra - a.extra   || b.rounds - a.rounds;
-    return b.score - a.score;
-  });
+  // 라운드 우선, 같은 라운드면 추가 횟수로 비교 (크로스핏 기준)
+  data.sort((a, b) => b.rounds - a.rounds || b.extra - a.extra);
 
   if (!data.length) { setMsg('📭', '해당 반의 데이터가 없습니다.'); return; }
 
-  const maxScore = data[0].score || 1;
+  const maxRounds = data[0].rounds || 1;
+  const best = [...allData].sort((a,b) => b.rounds - a.rounds || b.extra - a.extra)[0];
 
   // 요약 통계
   document.getElementById('s-teams').textContent = allData.length + '팀';
   document.getElementById('s-avg').textContent =
-    Math.round(allData.reduce((s, r) => s + r.score, 0) / allData.length) + '점';
-  document.getElementById('s-max').textContent = allData[0]?.score + '점';
+    Math.round(allData.reduce((s, r) => s + r.rounds, 0) / allData.length) + '라운드';
+  document.getElementById('s-max').textContent = best?.rounds + 'R ' + best?.extra + '회';
   document.getElementById('s-cls').textContent =
     new Set(allData.map(r => r.cls)).size + '개';
 
@@ -397,16 +395,16 @@ function render() {
   // 테이블
   const MEDALS = ['🥇','🥈','🥉'];
   document.getElementById('rankBody').innerHTML = data.map((r, i) => {
-    const pct = Math.round((r.score / maxScore) * 100);
+    const pct = Math.round((r.rounds / maxRounds) * 100);
     const rankClass = i < 3 ? `rank-${i+1}` : '';
     const rankLabel = i < 3 ? MEDALS[i] : `#${i+1}`;
     return `<tr>
       <td><span class="rank-num ${rankClass}">${rankLabel}</span></td>
       <td class="name-col">${r.names}</td>
       <td><span class="cls-badge">${r.cls}</span></td>
-      <td>${r.rounds}회</td>
+      <td>${r.rounds}라운드</td>
       <td>${r.extra}회</td>
-      <td class="score-col">${r.score}점</td>
+      <td class="score-col">${r.rounds}R + ${r.extra}회</td>
       <td><div class="bar-wrap">
         <div class="bar-bg"><div class="bar-fill" style="width:${pct}%"></div></div>
         <span style="font-size:0.75rem;color:#888;min-width:30px">${pct}%</span>
